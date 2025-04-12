@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desenvolvimento de Jogos</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Plataforma de Desenvolvimento de Jogos</h1>
+        <p>Use as ferramentas para criar seu jogo</p>
+    </header>
+    <main>
+        <div id="game-container"></div>
+        <button id="start-game">Iniciar Jogo</button>
+    </main>
+    <footer>
+        <p>&copy; 2025 - Criado para você aprender e criar!</p>
+    </footer>
+
+    <script src="game.js"></script>
+</body>
+</html>
+/* Reset básico de estilos */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Estilo para o corpo e container */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+}
+
+/* Estilo para o header */
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    color: #333;
+}
+
+/* Estilo para o botão */
+button {
+    background-color: #4CAF50;
+    color: white;
+    font-size: 16px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+/* Estilo para o footer */
+footer {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #777;
+}
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    parent: 'game-container',
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+let player;
+
+function preload() {
+    this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+}
+
+function create() {
+    player = this.physics.add.image(400, 300, 'player');
+    player.setCollideWorldBounds(true);
+}
+
+function update() {
+    const cursors = this.input.keyboard.createCursorKeys();
+    
+    if (cursors.left.isDown) {
+        player.setVelocityX(-160);
+    } else if (cursors.right.isDown) {
+        player.setVelocityX(160);
+    } else {
+        player.setVelocityX(0);
+    }
+
+    if (cursors.up.isDown) {
+        player.setVelocityY(-160);
+    } else if (cursors.down.isDown) {
+        player.setVelocityY(160);
+    } else {
+        player.setVelocityY(0);
+    }
+}
+
+const game = new Phaser.Game(config);
+
+document.getElementById('start-game').addEventListener('click', function() {
+    game.start();
+});
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    parent: 'game-container',
+    scene: [MenuScene, GameScene]
+};
+
+// Definindo a cena do menu
+class MenuScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'MenuScene' });
+    }
+
+    preload() {
+        // Carregar recursos, se necessário
+        this.load.image('logo', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+    }
+
+    create() {
+        this.add.text(300, 200, 'Bem-vindo ao Jogo!', { fontSize: '32px', fill: '#fff' });
+
+        // Adiciona o botão de iniciar
+        let startButton = this.add.text(300, 300, 'Clique para Começar', { fontSize: '24px', fill: '#0f0' })
+            .setInteractive()
+            .on('pointerdown', () => this.scene.start('GameScene'));  // Vai para o jogo quando clicado
+    }
+}
+
+// Definindo a cena do jogo
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    preload() {
+        this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+        this.load.image('enemy', 'https://examples.phaser.io/assets/sprites/robotron.png');
+    }
+
+    create() {
+        // Variáveis de pontuação
+        this.score = 0;
+        this.scoreText = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#fff' });
+
+        // Jogador
+        this.player = this.physics.add.image(400, 300, 'player');
+        this.player.setCollideWorldBounds(true);
+
+        // Inimigos
+        this.enemies = this.physics.add.group();
+        this.createEnemies();
+
+        // Controle do jogador
+        this.cursors = this.input.keyboard.createCursorKeys();
+    }
+
+    update() {
+        // Movimento do jogador
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+        } else {
+            this.player.setVelocityY(0);
+        }
+
+        // Colisão com inimigos
+        this.physics.world.collide(this.player, this.enemies, this.hitEnemy, null, this);
+
+        // Atualização da pontuação
+        this.scoreText.setText('Pontos: ' + this.score);
+    }
+
+    // Função para criar inimigos
+    createEnemies() {
+        for (let i = 0; i < 5; i++) {
+            let enemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+            enemy.setCollideWorldBounds(true);
+            enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+        }
+    }
+
+    // Função de colisão com inimigos
+    hitEnemy(player, enemy) {
+        enemy.destroy(); // O inimigo desaparece
+        this.score += 10; // Aumenta a pontuação
+    }
+}
+
+const game = new Phaser.Game(config);
+
+document.getElementById('start-game').addEventListener('click', function() {
+    game.start();
+});
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    preload() {
+        this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+        this.load.image('enemy', 'https://examples.phaser.io/assets/sprites/robotron.png');
+        this.load.image('heart', 'https://examples.phaser.io/assets/sprites/heart.png');  // Ícone de vida
+    }
+
+    create() {
+        // Variáveis de pontuação e vidas
+        this.score = 0;
+        this.lives = 3;  // Começando com 3 vidas
+        this.scoreText = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#fff' });
+        this.livesText = this.add.text(16, 50, 'Vidas: 3', { fontSize: '32px', fill: '#fff' });
+        this.livesIcons = this.add.group();
+
+        // Adiciona ícones de vida na tela
+        for (let i = 0; i < this.lives; i++) {
+            this.livesIcons.create(700 + (i * 30), 50, 'heart');
+        }
+
+        // Jogador
+        this.player = this.physics.add.image(400, 300, 'player');
+        this.player.setCollideWorldBounds(true);
+
+        // Inimigos
+        this.enemies = this.physics.add.group();
+        this.createEnemies();
+
+        // Controle do jogador
+        this.cursors = this.input.keyboard.createCursorKeys();
+    }
+
+    update() {
+        // Movimento do jogador
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+        } else {
+            this.player.setVelocityY(0);
+        }
+
+        // Colisão com inimigos
+        this.physics.world.collide(this.player, this.enemies, this.hitEnemy, null, this);
+
+        // Atualização da pontuação e vidas
+        this.scoreText.setText('Pontos: ' + this.score);
+        this.livesText.setText('Vidas: ' + this.lives);
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    // Função para criar inimigos
+    createEnemies() {
+        for (let i = 0; i < 5; i++) {
+            let enemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+            enemy.setCollideWorldBounds(true);
+            enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+        }
+    }
+
+    // Função de colisão com inimigos
+    hitEnemy(player, enemy) {
+        enemy.destroy(); // O inimigo desaparece
+        this.score += 10; // Aumenta a pontuação
+
+        // O jogador perde uma vida
+        this.lives -= 1;
+        this.livesIcons.getChildren()[this.lives].destroy();  // Remove o ícone de vida
+
+        // Se o jogador perdeu todas as vidas, chama a função gameOver
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    // Função para mostrar a tela de Game Over
+    gameOver() {
+        this.add.text(250, 250, 'GAME OVER', { fontSize: '64px', fill: '#f00' });
+        this.add.text(250, 320, 'Pontos: ' + this.score, { fontSize: '32px', fill: '#fff' });
+        this.physics.pause();  // Para todas as animações e movimento
+    }
+}
+
+const game = new Phaser.Game(config);
+// Modificando a função de criação de inimigos
+createEnemies() {
+    for (let i = 0; i < 3; i++) {
+        let enemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+        enemy.setCollideWorldBounds(true);
+        enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+    }
+
+    // Inimigo que segue o jogador
+    let smartEnemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+    smartEnemy.setCollideWorldBounds(true);
+    this.physics.moveToObject(smartEnemy, this.player, 100);  // Inimigo segue o jogador com velocidade de 100
+}
+// Criando o power-up de vida
+createPowerUps() {
+    let lifePowerUp = this.physics.add.sprite(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'heart');
+    lifePowerUp.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+    this.physics.add.overlap(this.player, lifePowerUp, this.collectLife, null, this);  // Colisão com o power-up
+}
+
+// Função para coletar o power-up de vida
+collectLife(player, lifePowerUp) {
+    lifePowerUp.destroy();  // Remove o power-up da tela
+    if (this.lives < 3) {   // Máximo de 3 vidas
+        this.lives += 1;
+        this.livesIcons.create(700 + (this.lives - 1) * 30, 50, 'heart');
+    }
+}
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    preload() {
+        this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+        this.load.image('enemy', 'https://examples.phaser.io/assets/sprites/robotron.png');
+        this.load.image('heart', 'https://examples.phaser.io/assets/sprites/heart.png');
+    }
+
+    create() {
+        // Cor de fundo
+        this.cameras.main.setBackgroundColor('#87CEEB'); // Cor de fundo azul claro
+
+        // Variáveis de pontuação e vidas
+        this.score = 0;
+        this.lives = 3;  // Começando com 3 vidas
+        this.scoreText = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#FFD700' });  // Pontuação em dourado
+        this.livesText = this.add.text(16, 50, 'Vidas: 3', { fontSize: '32px', fill: '#FFD700' });  // Vidas em dourado
+        this.livesIcons = this.add.group();
+
+        // Ícones de vida
+        for (let i = 0; i < this.lives; i++) {
+            this.livesIcons.create(700 + (i * 30), 50, 'heart').setTint(0xFF69B4);  // Cor das vidas em rosa
+        }
+
+        // Jogador com cor personalizada
+        this.player = this.physics.add.image(400, 300, 'player').setTint(0x00FF00);  // Jogador verde
+        this.player.setCollideWorldBounds(true);
+
+        // Inimigos com cores aleatórias
+        this.enemies = this.physics.add.group();
+        this.createEnemies();
+
+        // Controle do jogador
+        this.cursors = this.input.keyboard.createCursorKeys();
+    }
+
+    update() {
+        // Movimento do jogador
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+        } else {
+            this.player.setVelocityY(0);
+        }
+
+        // Colisão com inimigos
+        this.physics.world.collide(this.player, this.enemies, this.hitEnemy, null, this);
+
+        // Atualização da pontuação e vidas
+        this.scoreText.setText('Pontos: ' + this.score);
+        this.livesText.setText('Vidas: ' + this.lives);
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    // Função para criar inimigos com cores aleatórias
+    createEnemies() {
+        for (let i = 0; i < 5; i++) {
+            let enemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+            enemy.setCollideWorldBounds(true);
+            enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+            enemy.setTint(Phaser.Math.Between(0x0000FF, 0xFF6347));  // Cor aleatória para cada inimigo (Azul e vermelho)
+        }
+
+        // Inimigo que segue o jogador
+        let smartEnemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+        smartEnemy.setCollideWorldBounds(true);
+        this.physics.moveToObject(smartEnemy, this.player, 100);  // Inimigo segue o jogador com velocidade de 100
+        smartEnemy.setTint(0xFF1493); // Cor do inimigo que segue o jogador (rosa forte)
+    }
+
+    // Função de colisão com inimigos
+    hitEnemy(player, enemy) {
+        enemy.destroy(); // O inimigo desaparece
+        this.score += 10; // Aumenta a pontuação
+
+        // O jogador perde uma vida
+        this.lives -= 1;
+        this.livesIcons.getChildren()[this.lives].destroy();  // Remove o ícone de vida
+
+        // Se o jogador perdeu todas as vidas, chama a função gameOver
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    // Função para mostrar a tela de Game Over
+    gameOver() {
+        this.add.text(250, 250, 'GAME OVER', { fontSize: '64px', fill: '#FF4500' }); // Game Over em laranja
+        this.add.text(250, 320, 'Pontos: ' + this.score, { fontSize: '32px', fill: '#FFFFFF' }); // Pontuação em branco
+        this.physics.pause();  // Para todas as animações e movimento
+    }
+}
+
+const game = new Phaser.Game(config);
+class TitleScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'TitleScene' });
+    }
+
+    preload() {
+        this.load.image('titleBg', 'https://examples.phaser.io/assets/skies/space3.png'); // Fundo legal para a tela de introdução
+        this.load.image('playButton', 'https://examples.phaser.io/assets/sprites/button.png'); // Botão de "Play"
+    }
+
+    create() {
+        // Fundo animado da tela de introdução
+        this.add.image(400, 300, 'titleBg');
+
+        // Texto de boas-vindas
+        this.add.text(250, 100, 'Bem-vindo ao Jogo!', { fontSize: '48px', fill: '#FFFFFF' });
+
+        // Botão para iniciar o jogo
+        let playButton = this.add.sprite(400, 300, 'playButton').setInteractive();
+        playButton.on('pointerdown', () => this.startGame());
+        this.add.text(370, 330, 'Clique para Jogar', { fontSize: '24px', fill: '#FFFFFF' });
+
+        // Animação do botão para torná-lo mais atraente
+        this.tweens.add({
+            targets: playButton,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    startGame() {
+        this.scene.start('GameScene');  // Quando o botão é clicado, o jogo começa
+    }
+}
+
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    preload() {
+        this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+        this.load.image('enemy', 'https://examples.phaser.io/assets/sprites/robotron.png');
+        this.load.image('heart', 'https://examples.phaser.io/assets/sprites/heart.png');
+    }
+
+    create() {
+        // Cor de fundo
+        this.cameras.main.setBackgroundColor('#87CEEB');
+
+        // Variáveis de pontuação e vidas
+        this.score = 0;
+        this.lives = 3;
+        this.scoreText = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#FFD700' });
+        this.livesText = this.add.text(16, 50, 'Vidas: 3', { fontSize: '32px', fill: '#FFD700' });
+        this.livesIcons = this.add.group();
+
+        // Ícones de vida
+        for (let i = 0; i < this.lives; i++) {
+            this.livesIcons.create(700 + (i * 30), 50, 'heart').setTint(0xFF69B4);
+        }
+
+        // Jogador com cor personalizada
+        this.player = this.physics.add.image(400, 300, 'player').setTint(0x00FF00);
+        this.player.setCollideWorldBounds(true);
+
+        // Inimigos
+        this.enemies = this.physics.add.group();
+        this.createEnemies();
+
+        // Controle do jogador
+        this.cursors = this.input.keyboard.createCursorKeys();
+    }
+
+    update() {
+        // Movimento do jogador
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+        } else {
+            this.player.setVelocityY(0);
+        }
+
+        // Colisão com inimigos
+        this.physics.world.collide(this.player, this.enemies, this.hitEnemy, null, this);
+
+        // Atualização da pontuação e vidas
+        this.scoreText.setText('Pontos: ' + this.score);
+        this.livesText.setText('Vidas: ' + this.lives);
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    // Função para criar inimigos
+    createEnemies() {
+        for (let i = 0; i < 5; i++) {
+            let enemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+            enemy.setCollideWorldBounds(true);
+            enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+            enemy.setTint(Phaser.Math.Between(0x0000FF, 0xFF6347));
+        }
+
+        // Inimigo que segue o jogador
+        let smartEnemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+        smartEnemy.setCollideWorldBounds(true);
+        this.physics.moveToObject(smartEnemy, this.player, 100);
+        smartEnemy.setTint(0xFF1493);
+    }
+
+    // Função de colisão com inimigos
+    hitEnemy(player, enemy) {
+        enemy.destroy();
+        this.score += 10;
+
+        this.lives -= 1;
+        this.livesIcons.getChildren()[this.lives].destroy();
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    // Função para mostrar a tela de Game Over
+    gameOver() {
+        this.add.text(250, 250, 'GAME OVER', { fontSize: '64px', fill: '#FF4500' });
+        this.add.text(250, 320, 'Pontos: ' + this.score, { fontSize: '32px', fill: '#FFFFFF' });
+        this.physics.pause();
+    }
+}
+
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    scene: [TitleScene, GameScene],
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    }
+};
+
+const game = new Phaser.Game(config);
+class LoginScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'LoginScene' });
+    }
+
+    preload() {
+        this.load.image('bg', 'https://examples.phaser.io/assets/skies/space3.png'); // Fundo
+    }
+
+    create() {
+        this.add.image(400, 300, 'bg');
+        this.add.text(300, 100, 'Login ou Cadastro', { fontSize: '48px', fill: '#FFFFFF' });
+
+        // Entradas para nome de usuário e senha
+        this.usernameInput = this.add.dom(400, 200, 'input', { type: 'text', placeholder: 'Digite seu nome' });
+        this.passwordInput = this.add.dom(400, 250, 'input', { type: 'password', placeholder: 'Digite sua senha' });
+
+        // Botão de login
+        let loginButton = this.add.text(400, 300, 'Entrar', { fontSize: '32px', fill: '#FF6347' }).setInteractive();
+        loginButton.on('pointerdown', () => this.loginUser());
+
+        // Botão de cadastro
+        let registerButton = this.add.text(400, 350, 'Cadastrar', { fontSize: '32px', fill: '#32CD32' }).setInteractive();
+        registerButton.on('pointerdown', () => this.registerUser());
+    }
+
+    loginUser() {
+        // Simulando um processo de login
+        const username = this.usernameInput.node.value;
+        const password = this.passwordInput.node.value;
+        
+        if (username && password) {
+            console.log('Login realizado com sucesso!');
+            // Aqui você adicionaria a lógica para validar o login com um back-end real
+            this.scene.start('GameScene');
+        } else {
+            console.log('Por favor, preencha todos os campos!');
+        }
+    }
+
+    registerUser() {
+        // Simulando um processo de cadastro
+        const username = this.usernameInput.node.value;
+        const password = this.passwordInput.node.value;
+        
+        if (username && password) {
+            console.log('Cadastro realizado com sucesso!');
+            // Aqui você adicionaria a lógica para registrar o usuário com um back-end real
+            this.scene.start('GameScene');
+        } else {
+            console.log('Por favor, preencha todos os campos!');
+        }
+    }
+}
+import firebase from "firebase/app";
+import "firebase/auth";
+
+// Inicializar o Firebase com suas credenciais
+const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    authDomain: "SEU_DOMINIO",
+    projectId: "SEU_PROJETO",
+    storageBucket: "SEU_BUCKET",
+    messagingSenderId: "SUA_ID",
+    appId: "SEU_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+
+// Função para criar um novo usuário
+function registerUser(username, password) {
+    auth.createUserWithEmailAndPassword(username, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            console.log("Usuário registrado:", user);
+        })
+        .catch((error) => {
+            console.error("Erro no cadastro:", error.message);
+        });
+}
+
+// Função para login
+function loginUser(username, password) {
+    auth.signInWithEmailAndPassword(username, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            console.log("Login realizado com sucesso:", user);
+        })
+        .catch((error) => {
+            console.error("Erro no login:", error.message);
+        });
+}
+class TitleScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'TitleScene' });
+    }
+
+    preload() {
+        this.load.image('titleBg', 'https://examples.phaser.io/assets/skies/space3.png');
+        this.load.image('playButton', 'https://examples.phaser.io/assets/sprites/button.png');
+    }
+
+    create() {
+        this.add.image(400, 300, 'titleBg');
+        this.add.text(250, 100, 'Bem-vindo ao Jogo!', { fontSize: '48px', fill: '#FFFFFF' });
+
+        let playButton = this.add.sprite(400, 300, 'playButton').setInteractive();
+        playButton.on('pointerdown', () => this.startGame());
+        this.add.text(370, 330, 'Clique para Jogar', { fontSize: '24px', fill: '#FFFFFF' });
+
+        // Animação do botão de "Play"
+        this.tweens.add({
+            targets: playButton,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Crédito no rodapé
+        this.add.text(300, 550, 'Criado por Wesley Teixeira', { fontSize: '18px', fill: '#FFFFFF' });
+    }
+
+    startGame() {
+        this.scene.start('GameScene');
+    }
+}
+
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    preload() {
+        this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+        this.load.image('enemy', 'https://examples.phaser.io/assets/sprites/robotron.png');
+        this.load.image('heart', 'https://examples.phaser.io/assets/sprites/heart.png');
+    }
+
+    create() {
+        this.cameras.main.setBackgroundColor('#87CEEB');
+
+        this.score = 0;
+        this.lives = 3;
+        this.scoreText = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#FFD700' });
+        this.livesText = this.add.text(16, 50, 'Vidas: 3', { fontSize: '32px', fill: '#FFD700' });
+        this.livesIcons = this.add.group();
+
+        for (let i = 0; i < this.lives; i++) {
+            this.livesIcons.create(700 + (i * 30), 50, 'heart').setTint(0xFF69B4);
+        }
+
+        this.player = this.physics.add.image(400, 300, 'player').setTint(0x00FF00);
+        this.player.setCollideWorldBounds(true);
+
+        this.enemies = this.physics.add.group();
+        this.createEnemies();
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+        // Crédito no rodapé
+        this.add.text(300, 550, 'Criado por Wesley Teixeira', { fontSize: '18px', fill: '#FFFFFF' });
+    }
+
+    update() {
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+        } else {
+            this.player.setVelocityY(0);
+        }
+
+        this.physics.world.collide(this.player, this.enemies, this.hitEnemy, null, this);
+
+        this.scoreText.setText('Pontos: ' + this.score);
+        this.livesText.setText('Vidas: ' + this.lives);
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    createEnemies() {
+        for (let i = 0; i < 5; i++) {
+            let enemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+            enemy.setCollideWorldBounds(true);
+            enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+            enemy.setTint(Phaser.Math.Between(0x0000FF, 0xFF6347));
+        }
+
+        let smartEnemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+        smartEnemy.setCollideWorldBounds(true);
+        this.physics.moveToObject(smartEnemy, this.player, 100);
+        smartEnemy.setTint(0xFF1493);
+    }
+
+    hitEnemy(player, enemy) {
+        enemy.destroy();
+        this.score += 10;
+        this.lives -= 1;
+        this.livesIcons.getChildren()[this.lives].destroy();
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    gameOver() {
+        this.add.text(250, 250, 'GAME OVER', { fontSize: '64px', fill: '#FF4500' });
+        this.add.text(250, 320, 'Pontos: ' + this.score, { fontSize: '32px', fill: '#FFFFFF' });
+        this.physics.pause();
+    }
+}
+
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    scene: [TitleScene, GameScene],
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    }
+};
+
+const game = new Phaser.Game(config);
+<footer style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px; background-color: #333; color: white;">
+    <p>Site criado por <strong>Wesley Teixeira</strong></p>
+</footer>
+class TitleScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'TitleScene' });
+    }
+
+    preload() {
+        this.load.image('titleBg', 'https://examples.phaser.io/assets/skies/space3.png');
+        this.load.image('playButton', 'https://examples.phaser.io/assets/sprites/button.png');
+        this.load.image('helpButton', 'https://examples.phaser.io/assets/sprites/button.png');  // Botão de ajuda
+    }
+
+    create() {
+        this.add.image(400, 300, 'titleBg');
+        this.add.text(250, 100, 'Bem-vindo ao Jogo!', { fontSize: '48px', fill: '#FFFFFF' });
+
+        let playButton = this.add.sprite(400, 300, 'playButton').setInteractive();
+        playButton.on('pointerdown', () => this.startGame());
+        this.add.text(370, 330, 'Clique para Jogar', { fontSize: '24px', fill: '#FFFFFF' });
+
+        // Botão de ajuda
+        let helpButton = this.add.sprite(400, 400, 'helpButton').setInteractive();
+        helpButton.on('pointerdown', () => this.showHelp());
+        this.add.text(370, 430, 'Ajuda/FAQ', { fontSize: '24px', fill: '#FFFFFF' });
+
+        // Animação do botão de "Play"
+        this.tweens.add({
+            targets: playButton,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Crédito no rodapé
+        this.add.text(300, 550, 'Criado por Wesley Teixeira', { fontSize: '18px', fill: '#FFFFFF' });
+    }
+
+    startGame() {
+        this.scene.start('GameScene');
+    }
+
+    showHelp() {
+        // Abre a tela de ajuda
+        this.scene.start('HelpScene');
+    }
+}
+
+class HelpScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'HelpScene' });
+    }
+
+    preload() {
+        this.load.image('helpBg', 'https://examples.phaser.io/assets/skies/space3.png');  // Fundo da tela de ajuda
+    }
+
+    create() {
+        this.add.image(400, 300, 'helpBg');
+        this.add.text(250, 100, 'Ajuda/FAQ', { fontSize: '48px', fill: '#FFFFFF' });
+
+        // Informações de ajuda
+        this.add.text(100, 200, 'P: Como jogar?', { fontSize: '24px', fill: '#FFFFFF' });
+        this.add.text(100, 240, 'R: Use as teclas de setas para mover o personagem.', { fontSize: '20px', fill: '#FFFFFF' });
+
+        this.add.text(100, 280, 'P: Como ganho pontos?', { fontSize: '24px', fill: '#FFFFFF' });
+        this.add.text(100, 320, 'R: Derrote inimigos para ganhar pontos.', { fontSize: '20px', fill: '#FFFFFF' });
+
+        this.add.text(100, 360, 'P: Como posso perder o jogo?', { fontSize: '24px', fill: '#FFFFFF' });
+        this.add.text(100, 400, 'R: Se você perder todas as suas vidas, o jogo acaba.', { fontSize: '20px', fill: '#FFFFFF' });
+
+        // Botão de voltar para a tela principal
+        let backButton = this.add.sprite(400, 500, 'playButton').setInteractive();
+        backButton.on('pointerdown', () => this.backToTitle());
+        this.add.text(370, 530, 'Voltar', { fontSize: '24px', fill: '#FFFFFF' });
+    }
+
+    backToTitle() {
+        this.scene.start('TitleScene');
+    }
+}
+
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    preload() {
+        this.load.image('player', 'https://examples.phaser.io/assets/sprites/phaser-dude.png');
+        this.load.image('enemy', 'https://examples.phaser.io/assets/sprites/robotron.png');
+        this.load.image('heart', 'https://examples.phaser.io/assets/sprites/heart.png');
+    }
+
+    create() {
+        this.cameras.main.setBackgroundColor('#87CEEB');
+
+        this.score = 0;
+        this.lives = 3;
+        this.scoreText = this.add.text(16, 16, 'Pontos: 0', { fontSize: '32px', fill: '#FFD700' });
+        this.livesText = this.add.text(16, 50, 'Vidas: 3', { fontSize: '32px', fill: '#FFD700' });
+        this.livesIcons = this.add.group();
+
+        for (let i = 0; i < this.lives; i++) {
+            this.livesIcons.create(700 + (i * 30), 50, 'heart').setTint(0xFF69B4);
+        }
+
+        this.player = this.physics.add.image(400, 300, 'player').setTint(0x00FF00);
+        this.player.setCollideWorldBounds(true);
+
+        this.enemies = this.physics.add.group();
+        this.createEnemies();
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+        // Crédito no rodapé
+        this.add.text(300, 550, 'Criado por Wesley Teixeira', { fontSize: '18px', fill: '#FFFFFF' });
+    }
+
+    update() {
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-160);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(160);
+        } else {
+            this.player.setVelocityX(0);
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-160);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(160);
+        } else {
+            this.player.setVelocityY(0);
+        }
+
+        this.physics.world.collide(this.player, this.enemies, this.hitEnemy, null, this);
+
+        this.scoreText.setText('Pontos: ' + this.score);
+        this.livesText.setText('Vidas: ' + this.lives);
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    createEnemies() {
+        for (let i = 0; i < 5; i++) {
+            let enemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+            enemy.setCollideWorldBounds(true);
+            enemy.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+            enemy.setTint(Phaser.Math.Between(0x0000FF, 0xFF6347));
+        }
+
+        let smartEnemy = this.enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(100, 500), 'enemy');
+        smartEnemy.setCollideWorldBounds(true);
+        this.physics.moveToObject(smartEnemy, this.player, 100);
+        smartEnemy.setTint(0xFF1493);
+    }
+
+    hitEnemy(player, enemy) {
+        enemy.destroy();
+        this.score += 10;
+        this.lives -= 1;
+        this.livesIcons.getChildren()[this.lives].destroy();
+
+        if (this.lives <= 0) {
+            this.gameOver();
+        }
+    }
+
+    gameOver() {
+        this.add.text(250, 250, 'GAME OVER', { fontSize: '64px', fill: '#FF4500' });
+        this.add.text(250, 320, 'Pontos: ' + this.score, { fontSize: '32px', fill: '#FFFFFF' });
+        this.physics.pause();
+    }
+}
+
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    scene: [TitleScene, HelpScene, GameScene],
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    }
+};
+
+const game = new Phaser.Game(config);
+
+<section id="help" style="padding: 30px; background-color: #f5f5f5;">
+    <h2>Ajuda e FAQ</h2>
+    <h3>P: Como jogar?</h3>
+    <p>R: Use as teclas de setas para mover o personagem e derrote os inimigos para ganhar pontos.</p>
+
+    <h3>P: Como ganho pontos?</h3>
+    <p>R: Derrote inimigos e complete objetivos para ganhar pontos.</p>
+
+    <h3>P: Como perder o jogo?</h3>
+    <p>R: Se você perder todas as suas vidas, o jogo termina.</p>
+
+    <h3>P: Posso salvar meu progresso?</h3>
+    <p>R: No momento, não é possível salvar o progresso. Reinicie o jogo para começar novamente.</p>
+
+    <h3>Contato</h3>
+    <p>Se você tiver dúvidas, entre em contato pelo e-mail: <strong>wesleyteixeira@email.com</strong></p>
+</section>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assinatura do Jogo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .offer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c7e92;
+            margin-bottom: 20px;
+        }
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 30px;
+        }
+        .button {
+            background-color: #2c7e92;
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            border-radius: 5px;
+            font-size: 18px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #1b5c67;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 20px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Assine e Jogue Agora!</h1>
+            <p class="offer">7 dias gratuitos! Após o período, apenas R$20,99 por mês.</p>
+        </div>
+        <div class="price">
+            <p>Assine agora!</p>
+            <p>R$20,99 por mês após 7 dias grátis</p>
+        </div>
+        <button class="button" id="subscribeBtn">Assinar Agora</button>
+
+        <div id="subscriptionMessage" style="display: none; text-align: center; margin-top: 20px;">
+            <p>Você tem 7 dias grátis! Após esse período, será cobrado R$20,99 por mês.</p>
+            <p><strong>Para pagar via PIX, use o botão abaixo:</strong></p>
+            <button class="button" id="generatePix">Pagar via PIX</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2025 Wesley Teixeira - Todos os direitos reservados</p>
+    </div>
+
+    <script>
+        document.getElementById('subscribeBtn').addEventListener('click', function() {
+            document.getElementById('subscriptionMessage').style.display = 'block';
+            document.getElementById('subscribeBtn').style.display = 'none';
+        });
+
+        document.getElementById('generatePix').addEventListener('click', function() {
+            const pixLink = 'https://www.pix.com.br/pagar?valor=20.99&chave=0531222259';
+            window.location.href = pixLink;  // Redireciona para o link PIX
+        });
+    </script>
+</body>
+</html>
+const pixLink = 'https://www.pix.com.br/pagar?valor=20.99&chave=0531222259';
+window.location.href = pixLink;
+<div class="footer">
+    <p>&copy; 2025 Wesley Teixeira - Todos os direitos reservados</p>
+    <p>Para dúvidas, entre em contato: <strong>wesleyteixeira@email.com</strong></p>
+</div>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento - Assinatura Mensal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .price-info {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c7e92;
+            margin-bottom: 20px;
+        }
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 30px;
+        }
+        .button {
+            background-color: #2c7e92;
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            border-radius: 5px;
+            font-size: 18px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #1b5c67;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 20px;
+            color: #777;
+        }
+        .info-text {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Pagamento da Assinatura</h1>
+            <p class="price-info">Você está prestes a assinar nosso serviço!</p>
+        </div>
+        <div class="price">
+            <p>R$20,99 por mês após 7 dias grátis</p>
+        </div>
+
+        <div class="info-text">
+            <p>Para continuar, basta realizar o pagamento via PIX. Clique no botão abaixo para gerar o link de pagamento.</p>
+            <p class="error" id="errorMessage" style="display:none;">O pagamento ainda não foi realizado. Tente novamente.</p>
+        </div>
+
+        <button class="button" id="generatePix">Pagar via PIX</button>
+
+        <div id="paymentStatus" style="display:none; text-align: center; margin-top: 30px;">
+            <p><strong>Link PIX gerado com sucesso!</strong></p>
+            <p><a href="https://www.pix.com.br/pagar?valor=20.99&chave=0531222259" target="_blank" class="button">Clique para pagar via PIX</a></p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2025 Wesley Teixeira - Todos os direitos reservados</p>
+    </div>
+
+    <script>
+        // Função para gerar o link do PIX e exibir a área de pagamento
+        document.getElementById('generatePix').addEventListener('click', function() {
+            const pixLink = 'https://www.pix.com.br/pagar?valor=20.99&chave=0531222259';  // Link PIX fictício
+
+            // Exibe o status do pagamento
+            document.getElementById('paymentStatus').style.display = 'block';
+            document.getElementById('generatePix').style.display = 'none'; // Oculta o botão após clique
+
+            // Simula o redirecionamento para o link do PIX
+            setTimeout(function() {
+                window.location.href = pixLink;
+            }, 2000); // Atraso de 2 segundos para o redirecionamento
+        });
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assine e Jogue - Wesley Teixeira</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .price-info {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c7e92;
+            margin-bottom: 20px;
+        }
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 30px;
+        }
+        .button {
+            background-color: #2c7e92;
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            border-radius: 5px;
+            font-size: 18px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #1b5c67;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 20px;
+            color: #777;
+        }
+        .info-text {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+        .subscription-message {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .subscription-message p {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="container">
+        <div class="header">
+            <h1>Assine e Jogue - Wesley Teixeira</h1>
+            <p class="price-info">7 dias gratuitos! Após o período, apenas R$20,99 por mês.</p>
+        </div>
+
+        <!-- Payment Info Section -->
+        <div class="price">
+            <p>R$20,99 por mês após 7 dias grátis</p>
+        </div>
+
+        <div class="info-text">
+            <p>Assine agora e tenha acesso imediato ao conteúdo exclusivo!</p>
+        </div>
+
+        <button class="button" id="subscribeBtn">Assine Agora</button>
+
+        <div class="subscription-message" id="subscriptionMessage" style="display: none;">
+            <p><strong>Você tem 7 dias grátis!</strong> Após este período, será cobrado R$20,99 por mês.</p>
+            <button class="button" id="generatePix">Pagar via PIX</button>
+        </div>
+    </div>
+
+    <!-- Payment Page Section -->
+    <div class="container" id="paymentPage" style="display:none;">
+        <div class="header">
+            <h1>Pagamento da Assinatura</h1>
+            <p class="price-info">Você está prestes a assinar nosso serviço!</p>
+        </div>
+        <div class="price">
+            <p>R$20,99 por mês após 7 dias grátis</p>
+        </div>
+
+        <div class="info-text">
+            <p>Para continuar, basta realizar o pagamento via PIX. Clique no botão abaixo para gerar o link de pagamento.</p>
+            <p class="error" id="errorMessage" style="display:none;">O pagamento ainda não foi realizado. Tente novamente.</p>
+        </div>
+
+        <button class="button" id="generatePixButton">Pagar via PIX</button>
+
+        <div id="paymentStatus" style="display:none; text-align: center; margin-top: 30px;">
+            <p><strong>Link PIX gerado com sucesso!</strong></p>
+            <p><a href="https://www.pix.com.br/pagar?valor=20.99&chave=0531222259" target="_blank" class="button">Clique para pagar via PIX</a></p>
+        </div>
+    </div>
+
+    <!-- Footer Section -->
+    <div class="footer">
+        <p>&copy; 2025 Wesley Teixeira - Todos os direitos reservados</p>
+        <p>Para dúvidas ou suporte, entre em contato: <strong>wesleyteixeira@email.com</strong></p>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        document.getElementById('subscribeBtn').addEventListener('click', function() {
+            // Mostra a mensagem de assinatura e esconde a opção de assinatura inicial
+            document.getElementById('subscriptionMessage').style.display = 'block';
+            document.getElementById('subscribeBtn').style.display = 'none';
+        });
+
+        document.getElementById('generatePix').addEventListener('click', function() {
+            // Mostra a página de pagamento
+            document.getElementById('paymentPage').style.display = 'block';
+            document.getElementById('subscriptionMessage').style.display = 'none';
+        });
+
+        document.getElementById('generatePixButton').addEventListener('click', function() {
+            const pixLink = 'https://www.pix.com.br/pagar?valor=20.99&chave=0531222259';  // Link PIX fictício
+
+            // Exibe o status de pagamento
+            document.getElementById('paymentStatus').style.display = 'block';
+            document.getElementById('generatePixButton').style.display = 'none'; // Oculta o botão após clique
+
+            // Simula o redirecionamento para o link do PIX
+            setTimeout(function() {
+                window.location.href = pixLink;
+            }, 2000); // Atraso de 2 segundos para o redirecionamento
+        });
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TR.JOGOS.com.br - Desenvolva Seus Jogos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2c7e92;
+        }
+        .price-info {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c7e92;
+            margin-bottom: 20px;
+        }
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 30px;
+        }
+        .button {
+            background-color: #2c7e92;
+            color: white;
+            padding: 15px 30px;
+            text-align: center;
+            border-radius: 5px;
+            font-size: 18px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #1b5c67;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 20px;
+            color: #777;
+        }
+        .info-text {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+        .subscription-message {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .subscription-message p {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="container">
+        <div class="header">
+            <h1>Bem-vindo ao TR.JOGOS.com.br</h1>
+            <p class="price-info">Desenvolva seus próprios jogos com as ferramentas que oferecemos! 7 dias gratuitos, e depois apenas R$20,99 por mês.</p>
+        </div>
+
+        <!-- Payment Info Section -->
+        <div class="price">
+            <p>R$20,99 por mês após 7 dias grátis</p>
+        </div>
+
+        <div class="info-text">
+            <p>Assine agora e tenha acesso às melhores ferramentas para criar e desenvolver jogos!</p>
+        </div>
+
+        <button class="button" id="subscribeBtn">Assine Agora</button>
+
+        <div class="subscription-message" id="subscriptionMessage" style="display: none;">
+            <p><strong>Você tem 7 dias grátis!</strong> Após este período, será cobrado R$20,99 por mês.</p>
+            <button class="button" id="generatePix">Pagar via PIX</button>
+        </div>
+    </div>
+
+    <!-- Payment Page Section -->
+    <div class="container" id="paymentPage" style="display:none;">
+        <div class="header">
+            <h1>Pagamento da Assinatura - TR.JOGOS.com.br</h1>
+            <p class="price-info">Você está prestes a assinar nosso serviço para desenvolver jogos incríveis!</p>
+        </div>
+        <div class="price">
+            <p>R$20,99 por mês após 7 dias grátis</p>
+        </div>
+
+        <div class="info-text">
+            <p>Para continuar, basta realizar o pagamento via PIX. Clique no botão abaixo para gerar o link de pagamento.</p>
+            <p class="error" id="errorMessage" style="display:none;">O pagamento ainda não foi realizado. Tente novamente.</p>
+        </div>
+
+        <button class="button" id="generatePixButton">Pagar via PIX</button>
+
+        <div id="paymentStatus" style="display:none; text-align: center; margin-top: 30px;">
+            <p><strong>Link PIX gerado com sucesso!</strong></p>
+            <p><a href="https://www.pix.com.br/pagar?valor=20.99&chave=0531222259" target="_blank" class="button">Clique para pagar via PIX</a></p>
+        </div>
+    </div>
+
+    <!-- Footer Section -->
+    <div class="footer">
+        <p>&copy; 2025 Wesley Teixeira - Todos os direitos reservados - TR.JOGOS.com.br</p>
+        <p>Para dúvidas ou suporte, entre em contato: <strong>wesleyteixeira@email.com</strong></p>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        document.getElementById('subscribeBtn').addEventListener('click', function() {
+            // Mostra a mensagem de assinatura e esconde a opção de assinatura inicial
+            document.getElementById('subscriptionMessage').style.display = 'block';
+            document.getElementById('subscribeBtn').style.display = 'none';
+        });
+
+        document.getElementById('generatePix').addEventListener('click', function() {
+            // Mostra a página de pagamento
+            document.getElementById('paymentPage').style.display = 'block';
+            document.getElementById('subscriptionMessage').style.display = 'none';
+        });
+
+        document.getElementById('generatePixButton').addEventListener('click', function() {
+            const pixLink = 'https://www.pix.com.br/pagar?valor=20.99&chave=0531222259';  // Link PIX fictício
+
+            // Exibe o status de pagamento
+            document.getElementById('paymentStatus').style.display = 'block';
+            document.getElementById('generatePixButton').style.display = 'none'; // Oculta o botão após clique
+
+            // Simula o redirecionamento para o link do PIX
+            setTimeout(function() {
+                window.location.href = pixLink;
+            }, 2000); // Atraso de 2 segundos para o redirecionamento
+        });
+    </script>
+</body>
+</html>
